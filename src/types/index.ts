@@ -68,7 +68,7 @@ export interface AnalisisMerma {
   consumo_teorico: number
   merma_cantidad: number
   merma_porcentaje: number
-  semaforo: 'verde' | 'amarillo' | 'rojo' | 'sin_consumo'
+  semaforo: 'verde' | 'amarillo' | 'rojo' | 'gris' | null
 }
 
 export interface Compra {
