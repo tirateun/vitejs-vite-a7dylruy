@@ -199,7 +199,14 @@ export default function PedidosBot() {
   }, [])
 
   async function cargarPedidos() {
-    const { data } = await supabase.from('whatsapp_pedidos').select('*').order('created_at', { ascending: false }).limit(50)
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
+    const { data } = await supabase
+      .from('whatsapp_pedidos')
+      .select('*')
+      .gte('created_at', hoy.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(50)
     if (data) setPedidos(data)
   }
 
