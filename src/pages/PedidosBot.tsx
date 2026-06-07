@@ -266,17 +266,17 @@ export default function PedidosBot() {
             </button>
           </div>
           <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-            {(['nuevo', 'en_preparacion', 'listo'] as EstadoPedido[]).map(estado => {
-              const count = pedidos.filter(p => p.estado === estado).length
-              const estado = ESTADOS.find(e => e.key === pedido.estado) || ESTADOS[0]
-              return (
-                <div key={estado} style={{ flex: 1, background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
-                  <div style={{ color: e.color, fontWeight: 700, fontSize: '20px' }}>{count}</div>
-                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px' }}>{e.label}</div>
-                </div>
-              )
-            })}
-          </div>
+  {(['nuevo', 'en_preparacion', 'entregado'] as EstadoPedido[]).map(estadoKey => {
+    const count = pedidos.filter(p => p.estado === estadoKey).length
+    const e = ESTADOS.find(est => est.key === estadoKey) || ESTADOS[0]
+    return (
+      <div key={estadoKey} style={{ flex: 1, background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
+        <div style={{ color: e.color, fontWeight: 700, fontSize: '20px' }}>{count}</div>
+        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px' }}>{e.label}</div>
+      </div>
+    )
+  })}
+</div>
         </div>
 
         <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
