@@ -43,11 +43,8 @@ interface Mensaje {
 
 const ESTADOS: { key: EstadoPedido; label: string; color: string; icon: React.ElementType }[] = [
   { key: 'nuevo',          label: 'Nuevo',      color: '#f59e0b', icon: Bell },
-  { key: 'confirmado',     label: 'Confirmado', color: '#3b82f6', icon: CheckCircle },
   { key: 'en_preparacion', label: 'En cocina',  color: '#8b5cf6', icon: ChefHat },
-  { key: 'listo',          label: 'Listo',      color: '#10b981', icon: Bike },
   { key: 'entregado',      label: 'Entregado',  color: '#6b7280', icon: CheckCircle },
-  { key: 'cancelado',      label: 'Cancelado',  color: '#ef4444', icon: XCircle },
 ]
 
 function formatHora(iso: string) {
