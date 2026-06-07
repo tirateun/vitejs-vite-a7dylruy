@@ -388,14 +388,14 @@ export default function PedidosBot() {
     alt="QR Yape" 
     style={{ width: '150px', borderRadius: '8px' }} 
   />
-) : msg.mensaje.startsWith('[Imagen recibida]') ? (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-    <span style={{ fontSize: '24px' }}>🖼️</span>
-    <span style={{ fontSize: '12px', color: '#6b7280' }}>Imagen del cliente — ver en WhatsApp</span>
-  </div>
-) : (
-  <div style={{ whiteSpace: 'pre-wrap' }}>{msg.mensaje}</div>
-)}
+  ) : msg.mensaje.startsWith('[COMPROBANTE:') ? (
+    <div>
+      <p style={{ margin: '0 0 6px', fontSize: '11px', color: '#6b7280' }}>📸 Comprobante de pago:</p>
+      <img src={msg.mensaje.replace('[COMPROBANTE:', '').replace(']', '')} alt="Comprobante" style={{ width: '200px', borderRadius: '8px', cursor: 'pointer' }} onClick={() => window.open(msg.mensaje.replace('[COMPROBANTE:', '').replace(']', ''), '_blank')} />
+    </div>
+  ) : (
+    <div style={{ whiteSpace: 'pre-wrap' }}>{msg.mensaje}</div>
+  )}
                         <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px', textAlign: 'right' }}>{formatHora(msg.created_at)}</div>
                       </div>
                     </div>
