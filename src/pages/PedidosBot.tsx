@@ -290,7 +290,7 @@ export default function PedidosBot() {
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {listaMostrada.map(pedido => {
-            const estado = ESTADOS.find(e => e.key === pedido.estado)!
+            const estado = ESTADOS.find(e => e.key === pedido.estado) || ESTADOS[0]
             const isSelected = pedidoSeleccionado?.id === pedido.id
             return (
               <div key={pedido.id} onClick={() => seleccionarPedido(pedido)}
