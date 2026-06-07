@@ -382,7 +382,20 @@ export default function PedidosBot() {
                   {mensajes.filter(m => m.telefono === pedidoSeleccionado.telefono).map(msg => (
                     <div key={msg.id} style={{ display: 'flex', justifyContent: msg.rol === 'user' ? 'flex-start' : 'flex-end' }}>
                       <div style={{ maxWidth: '75%', background: msg.rol === 'user' ? '#fff' : '#dcf8c6', padding: '10px 14px', borderRadius: msg.rol === 'user' ? '0 12px 12px 12px' : '12px 0 12px 12px', fontSize: '13px', color: '#1a1a1a', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                        <div style={{ whiteSpace: 'pre-wrap' }}>{msg.mensaje}</div>
+                      {msg.mensaje.startsWith('[QR Yape enviado - ') ? (
+  <img 
+    src={msg.mensaje.replace('[QR Yape enviado - ', '').replace(']', '')} 
+    alt="QR Yape" 
+    style={{ width: '150px', borderRadius: '8px' }} 
+  />
+) : msg.mensaje.startsWith('[Imagen recibida]') ? (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <span style={{ fontSize: '24px' }}>🖼️</span>
+    <span style={{ fontSize: '12px', color: '#6b7280' }}>Imagen del cliente — ver en WhatsApp</span>
+  </div>
+) : (
+  <div style={{ whiteSpace: 'pre-wrap' }}>{msg.mensaje}</div>
+)}
                         <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px', textAlign: 'right' }}>{formatHora(msg.created_at)}</div>
                       </div>
                     </div>
