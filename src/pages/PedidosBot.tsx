@@ -379,27 +379,23 @@ export default function PedidosBot() {
             {tabDetalle === 'conversacion' ? (
               <>
                 <div ref={mensajesRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px', background: '#f0f0f0' }}>
-                  {mensajes.filter(m => m.telefono === pedidoSeleccionado.telefono).map(msg => (
-                    <div key={msg.id} style={{ display: 'flex', justifyContent: msg.rol === 'user' ? 'flex-start' : 'flex-end' }}>
-                      <div style={{ maxWidth: '75%', background: msg.rol === 'user' ? '#fff' : '#dcf8c6', padding: '10px 14px', borderRadius: msg.rol === 'user' ? '0 12px 12px 12px' : '12px 0 12px 12px', fontSize: '13px', color: '#1a1a1a', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                      {msg.mensaje.startsWith('[QR Yape enviado - ') ? (
-  <img 
-    src={msg.mensaje.replace('[QR Yape enviado - ', '').replace(']', '')} 
-    alt="QR Yape" 
-    style={{ width: '150px', borderRadius: '8px' }} 
-  />
-  ) : msg.mensaje.startsWith('[COMPROBANTE:') ? (
-    <div>
-      <p style={{ margin: '0 0 6px', fontSize: '11px', color: '#6b7280' }}>📸 Comprobante de pago:</p>
-      <img src={msg.mensaje.replace('[COMPROBANTE:', '').replace(']', '')} alt="Comprobante" style={{ width: '200px', borderRadius: '8px', cursor: 'pointer' }} onClick={() => window.open(msg.mensaje.replace('[COMPROBANTE:', '').replace(']', ''), '_blank')} />
+                {mensajes.filter(m => m.telefono === pedidoSeleccionado.telefono).map(msg => (
+  <div key={msg.id} style={{ display: 'flex', justifyContent: msg.rol === 'user' ? 'flex-start' : 'flex-end' }}>
+    <div style={{ maxWidth: '75%', background: msg.rol === 'user' ? '#fff' : '#dcf8c6', padding: '10px 14px', borderRadius: msg.rol === 'user' ? '0 12px 12px 12px' : '12px 0 12px 12px', fontSize: '13px', color: '#1a1a1a', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+      {msg.mensaje.startsWith('[QR Yape enviado - ') ? (
+        <img src={msg.mensaje.slice(19, -1)} alt="QR Yape" style={{ width: '150px', borderRadius: '8px' }} />
+      ) : msg.mensaje.startsWith('[COMPROBANTE:') ? (
+        <div>
+          <p style={{ margin: '0 0 6px', fontSize: '11px', color: '#6b7280' }}>📸 Comprobante de pago:</p>
+          <img src={msg.mensaje.slice(13, -1)} alt="Comprobante" style={{ width: '200px', borderRadius: '8px', cursor: 'pointer' }} onClick={() => window.open(msg.mensaje.slice(13, -1), '_blank')} />
+        </div>
+      ) : (
+        <div style={{ whiteSpace: 'pre-wrap' }}>{msg.mensaje}</div>
+      )}
+      <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px', textAlign: 'right' }}>{formatHora(msg.created_at)}</div>
     </div>
-  ) : (
-    <div style={{ whiteSpace: 'pre-wrap' }}>{msg.mensaje}</div>
-  )}
-                        <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px', textAlign: 'right' }}>{formatHora(msg.created_at)}</div>
-                      </div>
-                    </div>
-                  ))}
+  </div>
+))}
                   {mensajes.filter(m => m.telefono === pedidoSeleccionado.telefono).length === 0 && (
                     <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '40px' }}>
                       <p style={{ fontSize: '13px' }}>No hay mensajes registrados</p>
