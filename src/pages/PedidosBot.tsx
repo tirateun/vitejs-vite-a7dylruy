@@ -268,7 +268,7 @@ export default function PedidosBot() {
           <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
             {(['nuevo', 'en_preparacion', 'listo'] as EstadoPedido[]).map(estado => {
               const count = pedidos.filter(p => p.estado === estado).length
-              const e = ESTADOS.find(e => e.key === estado)!
+              const estado = ESTADOS.find(e => e.key === pedido.estado) || ESTADOS[0]
               return (
                 <div key={estado} style={{ flex: 1, background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
                   <div style={{ color: e.color, fontWeight: 700, fontSize: '20px' }}>{count}</div>
