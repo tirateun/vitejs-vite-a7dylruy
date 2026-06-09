@@ -4,10 +4,11 @@ import { MessageSquare, Printer, CheckCircle, ChefHat, Bike, XCircle, RefreshCw,
 
 const WHATSAPP_TOKEN = 'EAAuhJL2hSGcBRhTXPcZASZCzGp90ieskpdvQpZBSaaRyE7RFe9R7FDxiRZBi1wbdjtcGwjx1L0hmkeAtVfS9hHMplRTPldVbhoLAevdKEjfDz7i7V5RdfSThAIxN4DOGyZCiazENO0Pnstf1AoDgNVBy9ZCHIbYLPvW1cZC1EFEn5PnR76C54zPcN57tuzl0gZDZD'
 const PHONE_NUMBER_ID = '1138917629305752'
+const GOOGLE_MAPS_KEY = 'AIzaSyC1R4KX6wZ6C0t8vcrt3eN2RBNaXx_-TPM'
 
 type EstadoPedido = 'nuevo' | 'confirmado' | 'en_preparacion' | 'listo' | 'entregado' | 'cancelado'
 type TabPrincipal = 'activos' | 'historial'
-type TabDetalle = 'conversacion' | 'detalle'
+type TabDetalle = 'conversacion' | 'detalle' | 'mapa'
 
 interface ItemPedido {
   descripcion: string
@@ -368,7 +369,7 @@ export default function PedidosBot() {
             </div>
 
             <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', background: '#fff' }}>
-              {([{ key: 'conversacion', label: 'Conversación' }, { key: 'detalle', label: 'Detalle pedido' }] as { key: TabDetalle; label: string }[]).map(t => (
+              {([{ key: 'conversacion', label: 'Conversación' }, { key: 'detalle', label: 'Detalle pedido' }, { key: 'mapa', label: '📍 Mapa' }] as { key: TabDetalle; label: string }[]).map(t => (
                 <button key={t.key} onClick={() => setTabDetalle(t.key)}
                   style={{ padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: tabDetalle === t.key ? 700 : 400, borderBottom: tabDetalle === t.key ? '2px solid #b91c1c' : '2px solid transparent', color: tabDetalle === t.key ? '#b91c1c' : '#6b7280' }}>
                   {t.label}
@@ -416,6 +417,53 @@ export default function PedidosBot() {
                   </button>
                 </div>
               </>
+            ) : tabDetalle === 'mapa' ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                {pedidoSeleccionado.direccion ? (
+                  <>
+                    {/* Info barra superior */}
+                    <div style={{ padding: '10px 16px', background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                      <div>
+                        <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#1a1a1a' }}>📍 {pedidoSeleccionado.direccion}</p>
+                        {pedidoSeleccionado.costo_delivery ? (
+                          <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b7280' }}>🛵 Delivery: S/{Number(pedidoSeleccionado.costo_delivery).toFixed(2)}</p>
+                        ) : null}
+                      </div>
+                      <a
+                        href={`https://www.google.com/maps/dir/-12.0621,-77.1089/${encodeURIComponent(pedidoSeleccionado.direccion + ', La Perla, Callao, Peru')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ background: '#b91c1c', color: '#fff', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
+                        Abrir en Maps
+                      </a>
+                    </div>
+
+                    {/* Mapa embed */}
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <iframe
+                        title="Ubicación del cliente"
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0, display: 'block' }}
+                        loading="lazy"
+                        allowFullScreen
+                        referrerPolicy="no-referrer-when-downgrade"
+                        src={`https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_KEY}&origin=${encodeURIComponent('Av. Pacífico 107, La Perla, Callao, Peru')}&destination=${encodeURIComponent(pedidoSeleccionado.direccion + ', La Perla, Callao, Peru')}&mode=driving&language=es`}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', gap: '12px' }}>
+                    <span style={{ fontSize: '48px' }}>📍</span>
+                    <p style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>Sin dirección registrada</p>
+                    <p style={{ margin: 0, fontSize: '12px' }}>
+                      {pedidoSeleccionado.tipo_entrega === 'delivery'
+                        ? 'La dirección aún no fue confirmada por el cliente'
+                        : 'Este pedido es para recoger en tienda'}
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : (
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
                 <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: '12px' }}>
