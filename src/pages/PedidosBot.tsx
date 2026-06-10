@@ -31,6 +31,9 @@ interface Pedido {
   estado: EstadoPedido
   notas: string
   created_at: string
+  comprobante_tipo: string
+  comprobante_dni: string
+  comprobante_ruc: string
 }
 
 interface Mensaje {
@@ -72,6 +75,26 @@ function imprimirTicket(pedido: Pedido) {
   const medioPago = pedido.medio_pago
     ? pedido.medio_pago.charAt(0).toUpperCase() + pedido.medio_pago.slice(1)
     : 'No especificado'
+
+  const comprobanteHtml = (() => {
+    const tipo = pedido.comprobante_tipo
+    if (!tipo || tipo === 'ninguno') return ''
+    let label = ''
+    let detalle = ''
+    if (tipo === 'boleta_simple') label = 'BOLETA DE VENTA SIMPLE'
+    else if (tipo === 'boleta_dni') {
+      label = 'BOLETA DE VENTA'
+      detalle = pedido.comprobante_dni ? 'DNI: ' + pedido.comprobante_dni : ''
+    } else if (tipo === 'factura') {
+      label = 'FACTURA'
+      detalle = pedido.comprobante_ruc ? 'RUC: ' + pedido.comprobante_ruc : ''
+    }
+    return `
+      <div class="linea"></div>
+      <div class="alerta">📄 COMPROBANTE: ${label}</div>
+      ${detalle ? '<div class="centro negrita">' + detalle + '</div>' : ''}
+    `
+  })()
 
   const contenido = `
     <html><head><style>
@@ -132,6 +155,7 @@ function imprimirTicket(pedido: Pedido) {
 
       <div class="linea"></div>
       <div class="centro pequeño">*** Gracias por su pedido ***</div>
+      ${comprobanteHtml}
       <br/><br/><br/>
     </body></html>
   `
@@ -534,6 +558,24 @@ export default function PedidosBot() {
                        pedidoSeleccionado.medio_pago || 'No especificado'}
                     </p>
                   </div>
+
+                  {/* Comprobante */}
+                  {pedidoSeleccionado.comprobante_tipo && pedidoSeleccionado.comprobante_tipo !== 'ninguno' && (
+                    <div style={{ padding: '12px', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fcd34d' }}>
+                      <p style={{ margin: '0 0 4px', fontSize: '11px', color: '#92400e', textTransform: 'uppercase', fontWeight: 600 }}>📄 Comprobante</p>
+                      <p style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>
+                        {pedidoSeleccionado.comprobante_tipo === 'boleta_simple' ? 'Boleta simple' :
+                         pedidoSeleccionado.comprobante_tipo === 'boleta_dni' ? 'Boleta con DNI' :
+                         pedidoSeleccionado.comprobante_tipo === 'factura' ? 'Factura' : ''}
+                      </p>
+                      {pedidoSeleccionado.comprobante_dni && (
+                        <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#78350f' }}>DNI: {pedidoSeleccionado.comprobante_dni}</p>
+                      )}
+                      {pedidoSeleccionado.comprobante_ruc && (
+                        <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#78350f' }}>RUC: {pedidoSeleccionado.comprobante_ruc}</p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Hora */}
                   <div style={{ padding: '12px', background: '#f9fafb', borderRadius: '8px' }}>
