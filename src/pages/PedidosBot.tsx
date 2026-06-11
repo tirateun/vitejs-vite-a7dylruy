@@ -206,6 +206,7 @@ export default function PedidosBot() {
       })
       await supabase.from('whatsapp_conversaciones').insert({ telefono:convSeleccionada.telefono, rol:'assistant', mensaje:texto, nombre_cliente:'Pizza Estefano (manual)' })
       setTexto('')
+      await cargarMensajes(convSeleccionada.telefono)
     } finally { setEnviando(false) }
   }
 
