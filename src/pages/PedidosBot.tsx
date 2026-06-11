@@ -414,6 +414,39 @@ export default function PedidosBot() {
           <p style={{ margin: '0 0 6px', fontSize: '11px', color: '#6b7280' }}>📸 Comprobante de pago:</p>
           <img src={msg.mensaje.slice(13, -1)} alt="Comprobante" style={{ width: '200px', borderRadius: '8px', cursor: 'pointer' }} onClick={() => window.open(msg.mensaje.slice(13, -1), '_blank')} />
         </div>
+      ) : msg.mensaje.startsWith('[UBICACION compartida:') ? (() => {
+        const coords = msg.mensaje.match(/\[UBICACION compartida: ([-\d.]+),([-\d.]+)\]/)
+        if (!coords) return <div style={{ whiteSpace: 'pre-wrap' }}>{msg.mensaje}</div>
+        const lat = coords[1], lng = coords[2]
+        const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`
+        const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${lat},${lng}&zoom=16`
+        return (
+          <div>
+            <p style={{ margin: '0 0 6px', fontSize: '11px', color: '#6b7280' }}>📍 Ubicación compartida por el cliente:</p>
+            <iframe
+              src={embedUrl}
+              width="220" height="150"
+              style={{ border: 0, borderRadius: '8px', display: 'block' }}
+              loading="lazy"
+              allowFullScreen
+            />
+            <a href={mapsUrl} target="_blank" rel="noreferrer"
+              style={{ display: 'inline-block', marginTop: '6px', fontSize: '11px', color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
+              🗺 Abrir en Google Maps
+            </a>
+          </div>
+        )
+      })() : msg.mensaje.startsWith('[ZONA DETECTADA POR GPS:') ? (() => {
+        const match = msg.mensaje.match(/Zona (\d+) - S\/([\d.]+) - distancia: ([\d.]+)km/)
+        if (!match) return <div style={{ whiteSpace: 'pre-wrap' }}>{msg.mensaje}</div>
+        return (
+          <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '8px 10px' }}>
+            <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: '#15803d' }}>✅ Zona detectada por GPS</p>
+            <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#166534' }}>Zona {match[1]} · S/{match[2]} · {match[3]}km</p>
+          </div>
+        )
+      })() : msg.mensaje === '[INICIO NUEVA SESION]' ? (
+        <div style={{ textAlign: 'center', fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>— Nuevo pedido —</div>
       ) : (
         <div style={{ whiteSpace: 'pre-wrap' }}>{msg.mensaje}</div>
       )}
