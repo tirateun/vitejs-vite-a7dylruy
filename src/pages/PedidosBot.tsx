@@ -487,7 +487,7 @@ export default function PedidosBot() {
                         ) : null}
                       </div>
                       <a
-                        href={`https://www.google.com/maps/dir/-12.0621,-77.1089/${encodeURIComponent(pedidoSeleccionado.direccion + ', La Perla, Callao, Peru')}`}
+                        href={`https://www.google.com/maps/dir/-12.0710922,-77.1163076/${encodeURIComponent(pedidoSeleccionado.direccion + ', La Perla, Callao, Peru')}`}
                         target="_blank"
                         rel="noreferrer"
                         style={{ background: '#b91c1c', color: '#fff', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
