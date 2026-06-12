@@ -120,78 +120,102 @@ export default function PedidosBot() {
   const playSound = () => {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.frequency.setValueAtTime(880, ctx.currentTime)
-      osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1)
-      gain.gain.setValueAtTime(0.3, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
-      osc.start(ctx.currentTime)
-      osc.stop(ctx.currentTime + 0.4)
-    } catch {}
+      // Dos beeps cortos
+      ;[0, 0.15].forEach(delay => {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.frequency.value = 1000
+        gain.gain.setValueAtTime(0.4, ctx.currentTime + delay)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.12)
+        osc.start(ctx.currentTime + delay)
+        osc.stop(ctx.currentTime + delay + 0.12)
+      })
+    } catch(e) { console.log('Audio error:', e) }
   }
+
+  // Tracking de último mensaje para detectar nuevos
+  const ultimoMensajeId = useRef<string>('')
+  const ultimoPedidoId = useRef<string>('')
 
   useEffect(() => {
     if ('Notification' in window) Notification.requestPermission()
     cargarTodo()
 
-    const ch1 = supabase.channel('rt-pedidos')
-      .on('postgres_changes', { event:'INSERT', schema:'public', table:'whatsapp_pedidos' }, p => {
-        const n = p.new as Pedido
-        setPedidos(prev => [n, ...prev])
-        if (Notification.permission==='granted') new Notification('Nuevo pedido 🍕', { body: `${n.nombre_cliente||'Cliente'} - ${n.tipo_entrega==='delivery'?'Delivery':'Recojo'}` })
-        imprimirTicket(n)
-        playSound()
-      })
-      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'whatsapp_pedidos' }, p => {
-        setPedidos(prev => prev.map(x => x.id===p.new.id ? p.new as Pedido : x))
-        if (pedidoSeleccionado?.id===p.new.id) setPedidoSeleccionado(p.new as Pedido)
-      })
-      .subscribe()
+    // Polling cada 3 segundos para mensajes
+    const intervalMensajes = setInterval(async () => {
+      const hoy = new Date(); hoy.setHours(0,0,0,0)
+      const { data } = await supabase
+        .from('whatsapp_conversaciones')
+        .select('telefono,nombre_cliente,mensaje,rol,created_at,id')
+        .gte('created_at', hoy.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
 
-    const ch2 = supabase.channel('rt-mensajes')
-      .on('postgres_changes', { event:'INSERT', schema:'public', table:'whatsapp_conversaciones' }, p => {
-        const n = p.new as Mensaje
+      if (!data || data.length === 0) return
+      const ultimo = data[0]
 
-        // Actualizar mensajes si es la conversación activa
-        setMensajes(prev => {
-          const yaExiste = prev.some(m => m.id === n.id)
-          if (yaExiste) return prev
-          const esMismoTelefono = convSeleccionadaRef.current?.telefono === n.telefono
-          return esMismoTelefono ? [...prev, n] : prev
-        })
+      // Si hay un mensaje nuevo del cliente
+      if (ultimo.id !== ultimoMensajeId.current) {
+        ultimoMensajeId.current = ultimo.id
 
-        // Actualizar lista de conversaciones directamente sin ir a BD
+        if (ultimo.rol === 'user') {
+          playSound()
+          if (Notification.permission === 'granted')
+            new Notification(`Mensaje de ${ultimo.nombre_cliente || ultimo.telefono}`, { body: ultimo.mensaje })
+        }
+
+        // Actualizar conversaciones
         setConversaciones(prev => {
-          const existe = prev.find(c => c.telefono === n.telefono)
-          const noLeidos = n.rol === 'user' && convSeleccionadaRef.current?.telefono !== n.telefono
+          const existe = prev.find(c => c.telefono === ultimo.telefono)
+          const noLeidos = ultimo.rol === 'user' && convSeleccionadaRef.current?.telefono !== ultimo.telefono ? 1 : 0
           if (existe) {
             return [
-              { ...existe, ultimoMensaje: n.mensaje, ultimoRol: n.rol, ultimoAt: n.created_at, noLeidos: noLeidos ? existe.noLeidos + 1 : existe.noLeidos, nombre: n.nombre_cliente || existe.nombre },
-              ...prev.filter(c => c.telefono !== n.telefono)
+              { ...existe, ultimoMensaje: ultimo.mensaje, ultimoRol: ultimo.rol, ultimoAt: ultimo.created_at, noLeidos: noLeidos ? existe.noLeidos + 1 : existe.noLeidos, nombre: ultimo.nombre_cliente || existe.nombre },
+              ...prev.filter(c => c.telefono !== ultimo.telefono)
             ]
           } else {
-            return [{ telefono: n.telefono, nombre: n.nombre_cliente || n.telefono, ultimoMensaje: n.mensaje, ultimoRol: n.rol, ultimoAt: n.created_at, noLeidos: noLeidos ? 1 : 0 }, ...prev]
+            return [{ telefono: ultimo.telefono, nombre: ultimo.nombre_cliente || ultimo.telefono, ultimoMensaje: ultimo.mensaje, ultimoRol: ultimo.rol, ultimoAt: ultimo.created_at, noLeidos }, ...prev]
           }
         })
 
-        // Sonido solo para mensajes del cliente
-        if (n.rol === 'user') {
-          playSound()
-          if (Notification.permission === 'granted')
-            new Notification(`Mensaje de ${n.nombre_cliente || n.telefono}`, { body: n.mensaje })
+        // Si es la conversación activa, recargar mensajes
+        if (convSeleccionadaRef.current?.telefono === ultimo.telefono) {
+          cargarMensajes(ultimo.telefono)
         }
+      }
+    }, 3000)
 
-        setTimeout(() => {
-          if (convSeleccionadaRef.current?.telefono === n.telefono)
-            scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-        }, 100)
-      })
-      .subscribe()
+    // Polling cada 5 segundos para pedidos
+    const intervalPedidos = setInterval(async () => {
+      const hoy = new Date(); hoy.setHours(0,0,0,0)
+      const { data } = await supabase
+        .from('whatsapp_pedidos')
+        .select('*')
+        .gte('created_at', hoy.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
 
-    return () => { supabase.removeChannel(ch1); supabase.removeChannel(ch2) }
+      if (!data || data.length === 0) return
+      const ultimo = data[0]
+
+      if (ultimo.id !== ultimoPedidoId.current && ultimoPedidoId.current !== '') {
+        ultimoPedidoId.current = ultimo.id
+        setPedidos(prev => [ultimo, ...prev.filter(p => p.id !== ultimo.id)])
+        playSound()
+        if (Notification.permission === 'granted')
+          new Notification('Nuevo pedido 🍕', { body: `${ultimo.nombre_cliente || 'Cliente'} - ${ultimo.tipo_entrega === 'delivery' ? 'Delivery' : 'Recojo'}` })
+        imprimirTicket(ultimo)
+      } else if (ultimoPedidoId.current === '') {
+        ultimoPedidoId.current = ultimo.id
+      }
+    }, 5000)
+
+    return () => {
+      clearInterval(intervalMensajes)
+      clearInterval(intervalPedidos)
+    }
   }, [])
 
   async function cargarTodo() {
