@@ -111,6 +111,27 @@ export default function PedidosBot() {
   const [enviando, setEnviando] = useState(false)
   const [botPausado, setBotPausado] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const convSeleccionadaRef = useRef<Conversacion | null>(null)
+
+  // Mantener ref sincronizado con el estado
+  useEffect(() => { convSeleccionadaRef.current = convSeleccionada }, [convSeleccionada])
+
+  // Sonido de notificación
+  const playSound = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.frequency.setValueAtTime(880, ctx.currentTime)
+      osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1)
+      gain.gain.setValueAtTime(0.3, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.4)
+    } catch {}
+  }
 
   useEffect(() => {
     if ('Notification' in window) Notification.requestPermission()
@@ -122,6 +143,7 @@ export default function PedidosBot() {
         setPedidos(prev => [n, ...prev])
         if (Notification.permission==='granted') new Notification('Nuevo pedido 🍕', { body: `${n.nombre_cliente||'Cliente'} - ${n.tipo_entrega==='delivery'?'Delivery':'Recojo'}` })
         imprimirTicket(n)
+        playSound()
       })
       .on('postgres_changes', { event:'UPDATE', schema:'public', table:'whatsapp_pedidos' }, p => {
         setPedidos(prev => prev.map(x => x.id===p.new.id ? p.new as Pedido : x))
@@ -132,11 +154,40 @@ export default function PedidosBot() {
     const ch2 = supabase.channel('rt-mensajes')
       .on('postgres_changes', { event:'INSERT', schema:'public', table:'whatsapp_conversaciones' }, p => {
         const n = p.new as Mensaje
-        setMensajes(prev => [...prev, n])
-        cargarConversaciones()
-        if (n.rol==='user' && Notification.permission==='granted')
-          new Notification(`Mensaje de ${n.nombre_cliente||n.telefono}`, { body: n.mensaje })
-        setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior:'smooth' }), 100)
+
+        // Actualizar mensajes si es la conversación activa
+        setMensajes(prev => {
+          const yaExiste = prev.some(m => m.id === n.id)
+          if (yaExiste) return prev
+          const esMismoTelefono = convSeleccionadaRef.current?.telefono === n.telefono
+          return esMismoTelefono ? [...prev, n] : prev
+        })
+
+        // Actualizar lista de conversaciones directamente sin ir a BD
+        setConversaciones(prev => {
+          const existe = prev.find(c => c.telefono === n.telefono)
+          const noLeidos = n.rol === 'user' && convSeleccionadaRef.current?.telefono !== n.telefono
+          if (existe) {
+            return [
+              { ...existe, ultimoMensaje: n.mensaje, ultimoRol: n.rol, ultimoAt: n.created_at, noLeidos: noLeidos ? existe.noLeidos + 1 : existe.noLeidos, nombre: n.nombre_cliente || existe.nombre },
+              ...prev.filter(c => c.telefono !== n.telefono)
+            ]
+          } else {
+            return [{ telefono: n.telefono, nombre: n.nombre_cliente || n.telefono, ultimoMensaje: n.mensaje, ultimoRol: n.rol, ultimoAt: n.created_at, noLeidos: noLeidos ? 1 : 0 }, ...prev]
+          }
+        })
+
+        // Sonido solo para mensajes del cliente
+        if (n.rol === 'user') {
+          playSound()
+          if (Notification.permission === 'granted')
+            new Notification(`Mensaje de ${n.nombre_cliente || n.telefono}`, { body: n.mensaje })
+        }
+
+        setTimeout(() => {
+          if (convSeleccionadaRef.current?.telefono === n.telefono)
+            scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+        }, 100)
       })
       .subscribe()
 
