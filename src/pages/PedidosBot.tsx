@@ -54,8 +54,8 @@ function iniciales(nombre: string) {
 function imprimirTicket(pedido: Pedido) {
   const h = new Date(pedido.created_at).toLocaleString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })
   const items = pedido.items?.length > 0
-    ? pedido.items.map(i => `<div class="item"><span>${i.descripcion||''}</span>${i.mitad?`<div class="obs">&#9654; Mitad: ${i.mitad}</div>`:''}${i.precio?`<span class="precio">S/${Number(i.precio).toFixed(2)}</span>`:''}</div>`).join('')
-    : '<div class="item"><span>Ver conversacion</span></div>'
+    ? pedido.items.map(i => `<div class="item"><div class="desc">${i.descripcion||''}</div>${i.mitad?`<div class="obs">&#9654; Mitad: ${i.mitad}</div>`:''}${i.precio?`<div class="precio">S/${Number(i.precio).toFixed(2)}</div>`:''}</div>`).join('')
+    : '<div class="item"><div class="desc">Ver conversacion</div></div>'
   const comp = (() => {
     const t = pedido.comprobante_tipo
     if (!t || t==='ninguno') return ''
@@ -63,13 +63,18 @@ function imprimirTicket(pedido: Pedido) {
     const det = t==='boleta_dni'&&pedido.comprobante_dni?`DNI: ${pedido.comprobante_dni}`:t==='factura'&&pedido.comprobante_ruc?`RUC: ${pedido.comprobante_ruc}`:''
     return `<div class="linea"></div><div class="alerta">📄 ${lbl}</div>${det?`<div class="centro negrita">${det}</div>`:''}`
   })()
-  const html = `<html><head><style>
-    body{font-family:monospace;font-size:12px;width:280px;margin:0;padding:8px}
-    .centro{text-align:center}.negrita{font-weight:bold}.grande{font-size:16px}
-    .linea{border-top:1px dashed #000;margin:6px 0}.item{display:flex;justify-content:space-between;margin:3px 0}
-    .obs{font-size:11px;color:#555;margin-left:8px}.precio{font-weight:bold}
-    .total{font-size:14px;font-weight:bold;display:flex;justify-content:space-between;margin-top:4px}
-    .alerta{background:#000;color:#fff;text-align:center;padding:3px;font-weight:bold;font-size:11px}
+  const html = `<html><head><meta charset="utf-8"><style>
+    @page { size: 80mm auto; margin: 0 }
+    *{box-sizing:border-box}
+    body{font-family:'Courier New',monospace;font-size:12px;width:80mm;margin:0;padding:6px 8px;color:#000}
+    .centro{text-align:center}.negrita{font-weight:bold}.grande{font-size:17px}
+    .linea{border-top:1px dashed #000;margin:6px 0}
+    .item{margin:5px 0;padding-bottom:4px;border-bottom:1px dotted #bbb}
+    .desc{font-size:12px;font-weight:bold;word-wrap:break-word;white-space:pre-wrap;line-height:1.3}
+    .obs{font-size:11px;color:#000;margin-left:6px}
+    .precio{font-size:12px;font-weight:bold;text-align:right}
+    .total{font-size:15px;font-weight:bold;display:flex;justify-content:space-between;margin-top:4px}
+    .alerta{background:#000;color:#fff;text-align:center;padding:4px;font-weight:bold;font-size:12px;margin:4px 0}
   </style></head><body>
     <div class="centro negrita grande">PIZZA ESTEFANO</div>
     <div class="centro">Av. Pacífico 107, La Perla - Callao</div>
@@ -82,10 +87,11 @@ function imprimirTicket(pedido: Pedido) {
     <div><b>Entrega:</b> ${pedido.tipo_entrega==='delivery'?'🛵 DELIVERY':'🏠 RECOJO'}</div>
     ${pedido.direccion?`<div><b>Dir:</b> ${pedido.direccion}</div>`:''}
     <div class="linea"></div>
+    <div class="negrita centro">--- PEDIDO ---</div>
     ${items}
     <div class="linea"></div>
-    ${pedido.subtotal?`<div class="item"><span>Subtotal</span><span>S/${Number(pedido.subtotal).toFixed(2)}</span></div>`:''}
-    ${pedido.costo_delivery?`<div class="item"><span>Delivery</span><span>S/${Number(pedido.costo_delivery).toFixed(2)}</span></div>`:''}
+    ${pedido.subtotal?`<div class="item"><div class="desc" style="font-weight:normal">Subtotal: S/${Number(pedido.subtotal).toFixed(2)}</div></div>`:''}
+    ${pedido.costo_delivery?`<div class="item"><div class="desc" style="font-weight:normal">Delivery: S/${Number(pedido.costo_delivery).toFixed(2)}</div></div>`:''}
     <div class="total"><span>TOTAL</span><span>S/${Number(pedido.total||0).toFixed(2)}</span></div>
     <div class="linea"></div>
     <div><b>Pago:</b> ${pedido.medio_pago||'Sin especificar'}</div>
@@ -95,8 +101,32 @@ function imprimirTicket(pedido: Pedido) {
     <div class="centro">*** Gracias por su pedido ***</div>
     <br/><br/><br/>
   </body></html>`
-  const w = window.open('','_blank','width=420,height=700')
-  if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(()=>{w.print();w.close()},600) }
+  // Imprimir vía iframe oculto (NO window.open): los navegadores bloquean los popups
+  // abiertos automáticamente (ej: al llegar un pedido nuevo), por eso "no aparecía" la
+  // impresora. El iframe no se bloquea y dispara el diálogo de impresión de forma confiable.
+  try {
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    document.body.appendChild(iframe)
+    const doc = iframe.contentWindow?.document || iframe.contentDocument
+    if (!doc) { document.body.removeChild(iframe); return }
+    doc.open(); doc.write(html); doc.close()
+    const win = iframe.contentWindow
+    const lanzar = () => {
+      try { win?.focus(); win?.print() } catch (e) { console.error('Error al imprimir:', e) }
+      // Quitar el iframe luego de un momento (deja terminar el diálogo de impresión)
+      setTimeout(() => { try { document.body.removeChild(iframe) } catch {} }, 1500)
+    }
+    // Esperar a que el contenido (y emojis/fuentes) cargue antes de imprimir
+    setTimeout(lanzar, 350)
+  } catch (e) {
+    console.error('No se pudo imprimir el ticket:', e)
+  }
 }
 
 export default function PedidosBot() {
@@ -574,9 +604,9 @@ export default function PedidosBot() {
                       <p style={{ margin:'0 0 8px', fontSize:'11px', color:'#9ca3af', textTransform:'uppercase', fontWeight:600 }}>Items</p>
                       {p.items?.length > 0 ? p.items.map((item,i) => (
                         <div key={i} style={{ marginBottom:'6px', paddingBottom:'6px', borderBottom: i < p.items.length-1 ? '1px solid #e5e7eb' : 'none' }}>
-                          <div style={{ display:'flex', justifyContent:'space-between' }}>
-                            <span style={{ fontSize:'13px' }}>{item.descripcion}</span>
-                            {item.precio && <span style={{ fontSize:'13px', fontWeight:600 }}>S/{Number(item.precio).toFixed(2)}</span>}
+                          <div style={{ display:'flex', justifyContent:'space-between', gap:'8px', alignItems:'flex-start' }}>
+                            <span style={{ fontSize:'13px', whiteSpace:'pre-wrap', wordBreak:'break-word', flex:1 }}>{item.descripcion}</span>
+                            {item.precio && <span style={{ fontSize:'13px', fontWeight:600, flexShrink:0 }}>S/{Number(item.precio).toFixed(2)}</span>}
                           </div>
                           {item.mitad && <div style={{ fontSize:'11px', color:'#6b7280' }}>↳ {item.mitad}</div>}
                         </div>
