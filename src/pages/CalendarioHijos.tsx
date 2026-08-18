@@ -554,3 +554,4 @@ function ModalOcurrencia({ oc, onClose, onHecho }: {
 const btnPrimary: React.CSSProperties = { background: '#5b6cf0', color: '#fff', border: 'none', borderRadius: '8px', padding: '11px 12px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
 const btnDanger: React.CSSProperties = { background: '#fff', color: '#b91c1c', border: '1px solid #f3c6c6', borderRadius: '8px', padding: '11px 12px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
 const btnGhost: React.CSSProperties = { background: '#fff', color: '#2b2b33', border: '1px solid #dcdce3', borderRadius: '8px', padding: '11px 12px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }
+//
