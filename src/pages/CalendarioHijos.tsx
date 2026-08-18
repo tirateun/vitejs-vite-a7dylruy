@@ -7,7 +7,7 @@ import { CalendarDays, Printer, Pencil, X, Plus, ChevronLeft, ChevronRight } fro
 // Series repetidas (con fecha de fin) + excepciones por día (mover o cancelar
 // una sola fecha). Datos en Supabase: hijos_series + hijos_excepciones.
 // Cambia los nombres aquí:
-const HIJOS = ['Diego  ', 'Marcelo', 'Fabiano']
+const HIJOS = ['Hijo 1', 'Hijo 2', 'Hijo 3']
 // ─────────────────────────────────────────────────────────────────────────────
 
 const BASE_HOUR = 6
@@ -306,7 +306,7 @@ export default function CalendarioHijos() {
           <button onClick={imprimirSemana} title="Imprimir esta semana" style={{ border: '1px solid #dcdce3', background: '#fff', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}><Printer size={14} /> Imprimir</button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(270px, 310px) 1fr', gap: '18px', alignItems: 'start' }}>
+        <div className="cal-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(270px, 310px) 1fr', gap: '18px', alignItems: 'start' }}>
 
           <div style={{ border: '1px solid #ececf1', borderRadius: '12px', padding: '16px' }}>
             <h3 style={{ margin: '0 0 12px', fontSize: '14px' }}>{editandoSerie ? 'Editando actividad' : 'Nueva actividad'} — {HIJOS[hijoActivo]}</h3>
@@ -392,8 +392,8 @@ export default function CalendarioHijos() {
             </div>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '680px' }}>
+          <div className="cal-grid-table-wrap" style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '560px' }}>
               <thead>
                 <tr>
                   <th style={{ border: '1px solid #dcdce3', width: '52px', background: '#fff' }}></th>
@@ -442,6 +442,13 @@ export default function CalendarioHijos() {
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 820px) {
+          .cal-grid { grid-template-columns: 1fr !important; }
+          .cal-grid-table-wrap { overflow-x: auto; }
+        }
+      `}</style>
 
       {ocSel && (
         <ModalOcurrencia
