@@ -1,17 +1,18 @@
 import { ReactNode, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, ClipboardList, Scale, ShoppingCart, BarChart3, LogOut, Menu, X, MessageSquare } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Scale, ShoppingCart, BarChart3, LogOut, Menu, X, MessageSquare, CalendarDays } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 interface LayoutProps { children: ReactNode }
 
 const NAV = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard'   },
-  { to: '/ventas',    icon: ClipboardList,   label: 'Ventas'      },
-  { to: '/cierre',    icon: Scale,           label: 'Inventario'  },
-  { to: '/compras',   icon: ShoppingCart,    label: 'Compras'     },
-  { to: '/merma',     icon: BarChart3,       label: 'Merma'       },
-  { to: '/pedidos',   icon: MessageSquare,   label: 'Bot Pedidos' },
+  { to: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard'   },
+  { to: '/ventas',     icon: ClipboardList,   label: 'Ventas'      },
+  { to: '/cierre',     icon: Scale,           label: 'Inventario'  },
+  { to: '/compras',    icon: ShoppingCart,    label: 'Compras'     },
+  { to: '/merma',      icon: BarChart3,       label: 'Merma'       },
+  { to: '/pedidos',    icon: MessageSquare,   label: 'Bot Pedidos' },
+  { to: '/calendario', icon: CalendarDays,    label: 'Calendario'  },
 ]
 
 const RED = '#b91c1c'

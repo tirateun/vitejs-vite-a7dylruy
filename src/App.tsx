@@ -8,6 +8,7 @@ import CierreInventario from './pages/CierreInventario'
 import Compras from './pages/Compras'
 import MermaAnalisis from './pages/MermaAnalisis'
 import PedidosBot from './pages/PedidosBot'
+import CalendarioHijos from './pages/CalendarioHijos'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -35,14 +36,15 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login"     element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/ventas"    element={<ProtectedRoute><VentasDiarias /></ProtectedRoute>} />
-      <Route path="/cierre"    element={<ProtectedRoute><CierreInventario /></ProtectedRoute>} />
-      <Route path="/compras"   element={<ProtectedRoute><Compras /></ProtectedRoute>} />
-      <Route path="/merma"     element={<ProtectedRoute><MermaAnalisis /></ProtectedRoute>} />
-      <Route path="/pedidos"   element={<ProtectedRoute><PedidosBot /></ProtectedRoute>} />
-      <Route path="*"          element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
+      <Route path="/login"      element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route path="/dashboard"  element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/ventas"     element={<ProtectedRoute><VentasDiarias /></ProtectedRoute>} />
+      <Route path="/cierre"     element={<ProtectedRoute><CierreInventario /></ProtectedRoute>} />
+      <Route path="/compras"    element={<ProtectedRoute><Compras /></ProtectedRoute>} />
+      <Route path="/merma"      element={<ProtectedRoute><MermaAnalisis /></ProtectedRoute>} />
+      <Route path="/pedidos"    element={<ProtectedRoute><PedidosBot /></ProtectedRoute>} />
+      <Route path="/calendario" element={<ProtectedRoute><CalendarioHijos /></ProtectedRoute>} />
+      <Route path="*"           element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
     </Routes>
   )
 }
