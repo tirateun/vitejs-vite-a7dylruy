@@ -27,7 +27,7 @@ export default function Login() {
     <div style={{ display: 'flex', minHeight: '100dvh', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
 
       {/* Panel izquierdo */}
-      <div style={{
+      <div className="login-left" style={{
         width: '420px', flexShrink: 0,
         background: 'linear-gradient(160deg, #7f1d1d 0%, #b91c1c 45%, #991b1b 100%)',
         display: 'flex', flexDirection: 'column',
@@ -72,6 +72,10 @@ export default function Login() {
       {/* Panel derecho */}
       <div style={{ flex: 1, background: '#f8f8f8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
         <div style={{ width: '100%', maxWidth: '400px' }}>
+
+          {/* Logo visible solo en móvil (el panel izquierdo se oculta) */}
+          <img className="login-mobile-logo" src={LOGO} alt="Pizza Estefano"
+            style={{ display: 'none', width: '72px', height: '72px', objectFit: 'contain', margin: '0 auto 28px', borderRadius: '16px' }} />
 
           <div style={{ marginBottom: '40px' }}>
             <p style={{ margin: '0 0 8px', fontSize: '11px', fontFamily: 'monospace', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
@@ -151,6 +155,7 @@ export default function Login() {
       <style>{`
         @media (max-width: 768px) {
           .login-left { display: none !important; }
+          .login-mobile-logo { display: block !important; }
         }
       `}</style>
     </div>
