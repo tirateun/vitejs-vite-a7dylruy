@@ -5,7 +5,12 @@ import { CalendarDays, Printer, Pencil, X, Plus, ChevronLeft, ChevronRight } fro
 // ─────────────────────────────────────────────────────────────────────────────
 // CALENDARIO DE ACTIVIDADES DE LOS HIJOS — vista semanal con fechas reales.
 // Series repetidas (con fecha de fin) + excepciones por día (mover o cancelar
-// una sola fecha). Datos en Supabase: hijos_series + hijos_excepciones.
+// una sola fecha). Cada serie puede tener la MISMA hora todos los días que se
+// repite, o una hora DISTINTA por cada día (ideal para actividades como
+// "Práctica Piano" que cambian de horario según el día). Datos en Supabase:
+// hijos_series + hijos_excepciones.
+// ⚠️ Requiere la migración de Supabase que agrega las columnas `modo` y
+// `horarios_por_dia` a hijos_series (ver mensaje / SQL adjunto).
 // Cambia los nombres aquí:
 const HIJOS = ['Diego', 'Marcelo', 'Fabiano']
 // ─────────────────────────────────────────────────────────────────────────────
@@ -24,14 +29,20 @@ const CAT_LABEL: Record<string, string> = {
 }
 const COLOR_HIJO = ['#5b6cf0', '#28a97a', '#e08a2e']
 
+type ModoHorario = 'uniforme' | 'por_dia'
+
+interface HorarioDia { inicio: string; fin: string }
+
 interface Serie {
   id: string
   hijo: number
   nombre: string
   categoria: string
   dias: number[]
+  modo: ModoHorario
   hora_inicio: string
   hora_fin: string
+  horarios_por_dia: Record<string, HorarioDia> | null
   lugar: string | null
   fecha_desde: string
   fecha_hasta: string
@@ -88,6 +99,21 @@ function formatDias(dias: number[]): string {
   return s.map(d => DAY_SHORT[d]).join(', ')
 }
 
+// Resuelve la hora "base" de una serie para un día de la semana dado,
+// según su modo (uniforme = misma hora siempre; por_dia = hora propia).
+function horarioDeSerieParaDia(s: Serie, idxDia: number): HorarioDia | null {
+  if (s.modo === 'por_dia') {
+    const h = s.horarios_por_dia?.[String(idxDia)]
+    return h ? { inicio: h.inicio, fin: h.fin } : null
+  }
+  return { inicio: s.hora_inicio, fin: s.hora_fin }
+}
+
+function minutosA_HHMM(mins: number): string {
+  const h = Math.floor(mins / 60), m = mins % 60
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0')
+}
+
 export default function CalendarioHijos() {
   const [hijoActivo, setHijoActivo] = useState(0)
   const [series, setSeries] = useState<Serie[]>([])
@@ -98,8 +124,10 @@ export default function CalendarioHijos() {
   const [fNombre, setFNombre] = useState('')
   const [fCat, setFCat] = useState('colegio')
   const [fDias, setFDias] = useState<Set<number>>(new Set())
+  const [fModo, setFModo] = useState<ModoHorario>('uniforme')
   const [fInicio, setFInicio] = useState('16:00')
   const [fFin, setFFin] = useState('17:00')
+  const [fHorariosPorDia, setFHorariosPorDia] = useState<Record<number, HorarioDia>>({})
   const [fLugar, setFLugar] = useState('')
   const [fDesde, setFDesde] = useState(() => toISO(new Date()))
   const [fHasta, setFHasta] = useState('')
@@ -145,6 +173,8 @@ export default function CalendarioHijos() {
       diasSemana.forEach((dia, idxDia) => {
         if (dia < desde || dia > hasta) return
         if (!s.dias.includes(idxDia)) return
+        const horarioBase = horarioDeSerieParaDia(s, idxDia)
+        if (!horarioBase) return
         const iso = toISO(dia)
         const exc = excPorSerie.get(s.id)?.get(iso)
         if (exc?.tipo === 'cancelada') return
@@ -152,14 +182,14 @@ export default function CalendarioHijos() {
           out.push({
             serieId: s.id, excId: exc.id, fechaISO: iso, diaSemana: idxDia,
             nombre: exc.nombre ?? s.nombre, categoria: exc.categoria ?? s.categoria,
-            hora_inicio: exc.hora_inicio ?? s.hora_inicio, hora_fin: exc.hora_fin ?? s.hora_fin,
+            hora_inicio: exc.hora_inicio ?? horarioBase.inicio, hora_fin: exc.hora_fin ?? horarioBase.fin,
             lugar: exc.lugar ?? s.lugar,
           })
         } else {
           out.push({
             serieId: s.id, excId: null, fechaISO: iso, diaSemana: idxDia,
             nombre: s.nombre, categoria: s.categoria,
-            hora_inicio: s.hora_inicio, hora_fin: s.hora_fin, lugar: s.lugar,
+            hora_inicio: horarioBase.inicio, hora_fin: horarioBase.fin, lugar: s.lugar,
           })
         }
       })
@@ -185,6 +215,7 @@ export default function CalendarioHijos() {
   function resetForm() {
     setEditandoSerie(null)
     setFNombre(''); setFCat('colegio'); setFDias(new Set())
+    setFModo('uniforme'); setFHorariosPorDia({})
     setFInicio('16:00'); setFFin('17:00'); setFLugar('')
     setFDesde(toISO(new Date())); setFHasta('')
   }
@@ -197,6 +228,12 @@ export default function CalendarioHijos() {
     else if (t === 'todos') setFDias(new Set([0, 1, 2, 3, 4, 5, 6]))
     else setFDias(new Set())
   }
+  function setHorarioDia(d: number, campo: 'inicio' | 'fin', valor: string) {
+    setFHorariosPorDia(prev => ({
+      ...prev,
+      [d]: { ...(prev[d] || { inicio: '16:00', fin: '17:00' }), [campo]: valor },
+    }))
+  }
 
   async function guardarSerie() {
     const nombre = fNombre.trim()
@@ -205,13 +242,37 @@ export default function CalendarioHijos() {
     if (dias.length === 0) { alert('Selecciona al menos un día.'); return }
     if (!fDesde || !fHasta) { alert('Indica desde y hasta qué fecha se repite.'); return }
     if (fromISO(fHasta) < fromISO(fDesde)) { alert('La fecha "hasta" debe ser posterior a "desde".'); return }
-    const s = timeParts(fInicio), e = timeParts(fFin)
-    if (e.h * 60 + e.m <= s.h * 60 + s.m) { alert('La hora de fin debe ser posterior a la de inicio.'); return }
+
+    let hora_inicio = fInicio
+    let hora_fin = fFin
+    let horarios_por_dia: Record<string, HorarioDia> | null = null
+
+    if (fModo === 'uniforme') {
+      const s = timeParts(fInicio), e = timeParts(fFin)
+      if (e.h * 60 + e.m <= s.h * 60 + s.m) { alert('La hora de fin debe ser posterior a la de inicio.'); return }
+    } else {
+      const mapa: Record<string, HorarioDia> = {}
+      for (const d of dias) {
+        const h = fHorariosPorDia[d]
+        if (!h || !h.inicio || !h.fin) { alert(`Falta el horario de ${DAY_LABEL[d]}.`); return }
+        const s = timeParts(h.inicio), e = timeParts(h.fin)
+        if (e.h * 60 + e.m <= s.h * 60 + s.m) { alert(`En ${DAY_LABEL[d]}, la hora de fin debe ser posterior a la de inicio.`); return }
+        mapa[d] = { inicio: h.inicio, fin: h.fin }
+      }
+      horarios_por_dia = mapa
+      // hora_inicio/hora_fin quedan como referencia (la más temprana y la más tardía)
+      // solo para ordenar la lista y no rompen nada de lo existente.
+      const inicios = dias.map(d => timeParts(mapa[d].inicio).h * 60 + timeParts(mapa[d].inicio).m)
+      const fines = dias.map(d => timeParts(mapa[d].fin).h * 60 + timeParts(mapa[d].fin).m)
+      hora_inicio = minutosA_HHMM(Math.min(...inicios))
+      hora_fin = minutosA_HHMM(Math.max(...fines))
+    }
 
     setGuardando(true)
     const fila = {
-      hijo: hijoActivo, nombre, categoria: fCat, dias,
-      hora_inicio: fInicio, hora_fin: fFin, lugar: fLugar.trim() || null,
+      hijo: hijoActivo, nombre, categoria: fCat, dias, modo: fModo,
+      hora_inicio, hora_fin, horarios_por_dia,
+      lugar: fLugar.trim() || null,
       fecha_desde: fDesde, fecha_hasta: fHasta,
     }
     const res = editandoSerie
@@ -225,6 +286,14 @@ export default function CalendarioHijos() {
   function editarSerie(s: Serie) {
     setEditandoSerie(s.id)
     setFNombre(s.nombre); setFCat(s.categoria); setFDias(new Set(s.dias))
+    setFModo(s.modo || 'uniforme')
+    if (s.modo === 'por_dia' && s.horarios_por_dia) {
+      const mapa: Record<number, HorarioDia> = {}
+      Object.entries(s.horarios_por_dia).forEach(([d, h]) => { mapa[Number(d)] = h })
+      setFHorariosPorDia(mapa)
+    } else {
+      setFHorariosPorDia({})
+    }
     setFInicio(s.hora_inicio); setFFin(s.hora_fin); setFLugar(s.lugar || '')
     setFDesde(s.fecha_desde); setFHasta(s.fecha_hasta)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -336,9 +405,44 @@ export default function CalendarioHijos() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '11px' }}>
-              <div><label style={labelStyle}>Hora inicio</label><input type="time" style={inputStyle} value={fInicio} onChange={e => setFInicio(e.target.value)} /></div>
-              <div><label style={labelStyle}>Hora fin</label><input type="time" style={inputStyle} value={fFin} onChange={e => setFFin(e.target.value)} /></div>
+            <div style={{ marginBottom: '11px' }}>
+              <label style={labelStyle}>Horario</label>
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                <button onClick={() => setFModo('uniforme')} style={{
+                  flex: 1, border: '1px solid', borderColor: fModo === 'uniforme' ? COLOR_HIJO[hijoActivo] : '#dcdce3',
+                  background: fModo === 'uniforme' ? '#eef1fe' : '#fafafb', color: fModo === 'uniforme' ? COLOR_HIJO[hijoActivo] : '#7a7a85',
+                  borderRadius: '8px', padding: '8px 6px', fontSize: '12px', fontWeight: fModo === 'uniforme' ? 600 : 400, cursor: 'pointer',
+                }}>Misma hora todos los días</button>
+                <button onClick={() => setFModo('por_dia')} style={{
+                  flex: 1, border: '1px solid', borderColor: fModo === 'por_dia' ? COLOR_HIJO[hijoActivo] : '#dcdce3',
+                  background: fModo === 'por_dia' ? '#eef1fe' : '#fafafb', color: fModo === 'por_dia' ? COLOR_HIJO[hijoActivo] : '#7a7a85',
+                  borderRadius: '8px', padding: '8px 6px', fontSize: '12px', fontWeight: fModo === 'por_dia' ? 600 : 400, cursor: 'pointer',
+                }}>Hora distinta por día</button>
+              </div>
+
+              {fModo === 'uniforme' ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div><label style={labelStyle}>Hora inicio</label><input type="time" style={inputStyle} value={fInicio} onChange={e => setFInicio(e.target.value)} /></div>
+                  <div><label style={labelStyle}>Hora fin</label><input type="time" style={inputStyle} value={fFin} onChange={e => setFFin(e.target.value)} /></div>
+                </div>
+              ) : (
+                fDias.size === 0 ? (
+                  <p style={{ fontSize: '12px', color: '#a3a3ad', fontStyle: 'italic', margin: 0 }}>Elige al menos un día arriba.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {Array.from(fDias).sort((a, b) => a - b).map(d => {
+                      const h = fHorariosPorDia[d] || { inicio: '16:00', fin: '17:00' }
+                      return (
+                        <div key={d} style={{ display: 'grid', gridTemplateColumns: '30px 1fr 1fr', gap: '8px', alignItems: 'center' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: '#7a7a85' }}>{DAY_SHORT[d]}</div>
+                          <input type="time" style={inputStyle} value={h.inicio} onChange={e => setHorarioDia(d, 'inicio', e.target.value)} />
+                          <input type="time" style={inputStyle} value={h.fin} onChange={e => setHorarioDia(d, 'fin', e.target.value)} />
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '11px' }}>
@@ -377,7 +481,17 @@ export default function CalendarioHijos() {
                         <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', background: CAT_COLOR[s.categoria] || CAT_COLOR.otro, marginRight: '6px' }} />
                         {s.nombre}
                       </div>
-                      <div style={{ color: '#7a7a85', fontSize: '11.5px', marginTop: '1px' }}>{formatDias(s.dias)} · {s.hora_inicio}–{s.hora_fin}{s.lugar ? ' · ' + s.lugar : ''}</div>
+                      <div style={{ color: '#7a7a85', fontSize: '11.5px', marginTop: '1px' }}>
+                        {formatDias(s.dias)} · {s.modo === 'por_dia' ? 'horario variable' : `${s.hora_inicio}–${s.hora_fin}`}{s.lugar ? ' · ' + s.lugar : ''}
+                      </div>
+                      {s.modo === 'por_dia' && s.horarios_por_dia && (
+                        <div style={{ color: '#a3a3ad', fontSize: '10.5px', marginTop: '1px' }}>
+                          {Object.entries(s.horarios_por_dia)
+                            .sort((a, b) => Number(a[0]) - Number(b[0]))
+                            .map(([d, h]) => `${DAY_SHORT[Number(d)]} ${h.inicio}–${h.fin}`)
+                            .join(' · ')}
+                        </div>
+                      )}
                       <div style={{ color: '#a3a3ad', fontSize: '10.5px', marginTop: '1px' }}>
                         {fromISO(s.fecha_desde).getDate()} {MESES[fromISO(s.fecha_desde).getMonth()].slice(0, 3)} → {fromISO(s.fecha_hasta).getDate()} {MESES[fromISO(s.fecha_hasta).getMonth()].slice(0, 3)} {fromISO(s.fecha_hasta).getFullYear()}
                       </div>
@@ -554,4 +668,3 @@ function ModalOcurrencia({ oc, onClose, onHecho }: {
 const btnPrimary: React.CSSProperties = { background: '#5b6cf0', color: '#fff', border: 'none', borderRadius: '8px', padding: '11px 12px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
 const btnDanger: React.CSSProperties = { background: '#fff', color: '#b91c1c', border: '1px solid #f3c6c6', borderRadius: '8px', padding: '11px 12px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
 const btnGhost: React.CSSProperties = { background: '#fff', color: '#2b2b33', border: '1px solid #dcdce3', borderRadius: '8px', padding: '11px 12px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }
-//
