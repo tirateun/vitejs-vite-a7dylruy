@@ -7,7 +7,7 @@ import { CalendarDays, Printer, Pencil, X, Plus, ChevronLeft, ChevronRight } fro
 // Series repetidas (con fecha de fin) + excepciones por día (mover o cancelar
 // una sola fecha). Datos en Supabase: hijos_series + hijos_excepciones.
 // Cambia los nombres aquí:
-const HIJOS = ['Hijo 1', 'Hijo 2', 'Hijo 3']
+const HIJOS = ['Diego', 'Marcelo', 'Fabiano']
 // ─────────────────────────────────────────────────────────────────────────────
 
 const BASE_HOUR = 6
