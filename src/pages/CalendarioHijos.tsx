@@ -310,17 +310,24 @@ export default function CalendarioHijos() {
     for (let h = BASE_HOUR; h <= LAST_HOUR; h++) {
       const celdas = DAY_LABEL.map((_, d) => {
         const chips = grilla[d][h - BASE_HOUR].map(({ oc, primera }) =>
-          `<div style="background:${CAT_COLOR[oc.categoria] || CAT_COLOR.otro};border-radius:4px;padding:2px 4px;margin-bottom:1px;color:#fff;font-size:9.5px;overflow:hidden;">${primera ? `<b>${oc.nombre}</b><br/><span style="font-size:8.5px;">${oc.hora_inicio}–${oc.hora_fin}${oc.lugar ? ' · ' + oc.lugar : ''}</span>` : '&nbsp;'}</div>`).join('')
-        return `<td style="border:1px solid #dcdce3;height:26px;padding:1px;vertical-align:top;">${chips}</td>`
+          `<div style="background:${CAT_COLOR[oc.categoria] || CAT_COLOR.otro};border-radius:5px;padding:4px 6px;margin-bottom:2px;color:#fff;font-size:13px;line-height:1.3;">${primera ? `<div style="font-weight:700;">${oc.nombre}</div><div style="font-size:11.5px;font-weight:500;opacity:.95;">${oc.hora_inicio}–${oc.hora_fin}${oc.lugar ? ' · ' + oc.lugar : ''}</div>` : '&nbsp;'}</div>`).join('')
+        return `<td style="border:1px solid #b0b0ba;height:42px;padding:2px;vertical-align:top;">${chips}</td>`
       }).join('')
-      filas.push(`<tr><td style="border:1px solid #dcdce3;background:#fafafb;font-size:9.5px;color:#7a7a85;text-align:right;padding:0 5px;white-space:nowrap;">${h < 10 ? '0' + h : h}:00</td>${celdas}</tr>`)
+      filas.push(`<tr><td style="border:1px solid #b0b0ba;background:#eeeef2;font-size:13px;font-weight:700;color:#2b2b33;text-align:right;padding:0 8px;white-space:nowrap;">${h < 10 ? '0' + h : h}:00</td>${celdas}</tr>`)
     }
-    const heads = DAY_LABEL.map((_, i) => `<th style="border:1px solid #dcdce3;background:#fafafb;padding:5px;font-size:10.5px;">${DAY_SHORT[i]} ${diasSemana[i].getDate()}</th>`).join('')
-    const html = `<html><head><meta charset="utf-8"><style>@page{size:landscape;margin:9mm}body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#2b2b33;margin:0;padding:10px}</style></head><body>
-      <h2 style="margin:0 0 2px;font-size:17px;">Calendario — ${HIJOS[hijoActivo]}</h2>
-      <div style="font-size:11px;color:#7a7a85;margin-bottom:8px;text-transform:capitalize;">${rangoLabel}</div>
+    const heads = DAY_LABEL.map((_, i) => `<th style="border:1px solid #b0b0ba;background:#eeeef2;padding:8px 4px;font-size:14px;font-weight:700;color:#2b2b33;">${DAY_SHORT[i]} ${diasSemana[i].getDate()}</th>`).join('')
+    const leyenda = Object.entries(CAT_LABEL).map(([v, l]) =>
+      `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;margin-right:16px;"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${CAT_COLOR[v]};"></span>${l}</span>`).join('')
+    const html = `<html><head><meta charset="utf-8"><style>
+      @page{size:landscape;margin:8mm}
+      *{ -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+      body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#2b2b33;margin:0;padding:12px}
+    </style></head><body>
+      <h2 style="margin:0 0 3px;font-size:22px;font-weight:800;">Calendario — ${HIJOS[hijoActivo]}</h2>
+      <div style="font-size:14px;color:#555;margin-bottom:8px;text-transform:capitalize;">${rangoLabel}</div>
+      <div style="margin-bottom:10px;">${leyenda}</div>
       <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
-        <thead><tr><th style="border:1px solid #dcdce3;width:46px;"></th>${heads}</tr></thead>
+        <thead><tr><th style="border:1px solid #b0b0ba;width:60px;background:#fff;"></th>${heads}</tr></thead>
         <tbody>${filas.join('')}</tbody>
       </table></body></html>`
     try {
